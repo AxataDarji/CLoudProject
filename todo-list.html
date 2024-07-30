@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+  <meta http-equiv="x-ua-compatible" content="ie=edge" />
+  <title>ToDo App</title>
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.2/css/all.css" />
+  <!-- Google Fonts Roboto -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" />
+  <!-- MDB -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/3.10.2/mdb.min.css" />
+</head>
+<body>
+  <section class="vh-100" style="background-color: #eee;">
+  <div class="container py-5 h-100">
+    <div class="row d-flex justify-content-center align-items-center h-100">
+      <div class="col col-lg-9 col-xl-7">
+        <div class="card rounded-3">
+          <div class="card-body p-4">
+
+            <h4 class="text-center my-3 pb-3">My Pending Items List</h4>
+
+            <form id="taskForm" class="row row-cols-lg-auto g-3 justify-content-center align-items-center mb-4 pb-2">
+              <div class="col-12">
+                <div class="row">
+                  <div class="col-6">
+                    <div class="form-outline">
+                      <label class="form-label" for="dateInput">Enter Date</label>
+                      <input type="date" id="dateInput" class="form-control" />
+                    </div>
+                  </div>
+                  <div class="col-6">
+                    <div class="form-outline">
+                      <label class="form-label" for="timeInput">Enter Time</label>
+                      <input type="time" id="timeInput" class="form-control" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-12">
+                <div class="form-outline">
+                  <label class="form-label" for="descriptionInput">Enter Description</label>
+                  <input type="text" id="descriptionInput" class="form-control" />
+                </div>
+              </div>
+              <div class="col-12">
+                <div class="col-12">
+                </br>
+                  <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+                <br>
+              </div>
+            </form>
+
+            <table class="table mb-4">
+              <thead>
+                <tr>
+                  <th scope="col" style="width: 5%;">No.</th>
+                  <th scope="col" style="width: 20%;">Date</th>
+                  <th scope="col" style="width: 10%;">Time</th>
+                  <th scope="col" style="width: 25%;">Description</th>
+                  <th scope="col" style="width: 45%;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="itemList">
+                
+              </tbody>
+            </table>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </section>
+
+  <!-- MDB -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/3.10.2/mdb.min.js"></script>
+  <!-- jQuery -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+  <!-- Custom scripts -->
+  <script type="text/javascript">
+
+    $(document).ready(function() {
+      loadItems();
+      $('#taskForm').submit(function(event) {
+        event.preventDefault(); 
+    
+        var date = $('#dateInput').val();
+        var time = $('#timeInput').val();
+        var description = $('#descriptionInput').val();
+
+        console.log("Form values:", { date: date, time: time, description: description });
+        
+        if (date && time && description) {
+          saveTask(date, time, description);
+        } else {
+          alert("All fields are required.");
+        }
+      });
+    });
+
+    function saveTask(date, time, description) {
+      $.ajax({
+        url: 'https://6tcm9tbhu1.execute-api.us-east-1.amazonaws.com/dev/add-event', 
+        type: 'POST',
+        data: JSON.stringify({ 
+          date: date, 
+          time: time, 
+          description: description 
+        }),
+        contentType: 'application/json',
+        success: function(response) {
+          console.log('Item saved successfully:', response);
+          alert('Item saved successfully!');
+          $('#taskForm')[0].reset();
+          loadItems();
+        },
+        error: function(error) {
+          console.error('Error saving task:', error);
+          alert('Error saving task. Please try again.');
+        }
+      });
+    }
+
+    function loadItems() {
+      $.ajax({
+        type: "GET",
+        url: 'https://6tcm9tbhu1.execute-api.us-east-1.amazonaws.com/dev/fetch-event',
+        dataType: 'json',
+        success: function (data) {
+          if (data.statusCode === 200) {
+            const items = JSON.parse(data.body);
+            var itemList = ``;
+            $.each(items, function (index, val) {
+              var date = val.date ? val.date.S : 'N/A';
+              var time = val.time ? val.time.S : 'N/A';
+              var description = val.description ? val.description.S : 'N/A';
+              var eventId = val.eventId ? val.eventId.S : 'N/A';
+
+              itemList += `<tr>
+                              <th scope="row">` + (index + 1) + `</th>
+                              <td>` + date + `</td>
+                              <td>` + time + `</td>
+                              <td>` + description + `</td>
+                              <td>
+                                  <button onclick="deleteItem('` + eventId + `')" type="button" class="btn btn-danger">Delete</button>
+                              </td>
+                            </tr>`;
+            });
+            $('#itemList').html(itemList);
+          } else {
+            console.error("Error: ", data);
+          }
+        },
+        error: function (xhr, status, error) {
+          console.error("Error occurred: ", status, error);
+        }
+      });
+    }
+
+    function deleteItem(eventId) {
+      const requestBody = JSON.stringify({ body: JSON.stringify({ eventId: eventId }) });
+      console.log("request is" + requestBody);
+      $.ajax({
+        type: "DELETE",
+        url: 'https://6tcm9tbhu1.execute-api.us-east-1.amazonaws.com/dev/delete-event',
+        contentType: 'application/json',
+        data: requestBody,
+        dataType: 'json',
+        success: function(data) {
+          alert('Item deleted successfully!');
+          $('#itemList').empty();
+          loadItems();
+        },
+        error: function(xhr, status, error) {
+          console.error("Error occurred: ", status, error);
+          alert('Could not delete the item. Please try again.');
+        }
+      });
+    }
+
+    function updateItem(eventId, updatedEvent) {
+      const requestBody = JSON.stringify({ eventId: eventId, updatedEvent: updatedEvent });
+      $.ajax({
+        type : "POST",
+        url : 'https://6tcm9tbhu1.execute-api.us-east-1.amazonaws.com/dev/update-event',
+        contentType: 'application/json',
+        data: requestBody,
+        dataType: 'json',
+        success : function(data) {
+          alert('Item updated successfully!');
+          $('#itemList').empty();
+          loadItems();
+        },
+        error: function (xhr, status, error) {
+          console.error("Error occurred: ", status, error);
+          alert('Could not update the item. Please try again.');
+        }
+      });
+    }
+    
+  </script>
+</body>
+</html>
