@@ -106,7 +106,7 @@
 
     function saveTask(date, time, description) {
       $.ajax({
-        url: 'https://6tcm9tbhu1.execute-api.us-east-1.amazonaws.com/dev/add-event', 
+        url: 'https://9qgdqi0uv6.execute-api.us-east-1.amazonaws.com/dev/events/add', 
         type: 'POST',
         data: JSON.stringify({ 
           date: date, 
@@ -127,48 +127,45 @@
       });
     }
 
-    function loadItems() {
-      $.ajax({
-        type: "GET",
-        url: 'https://6tcm9tbhu1.execute-api.us-east-1.amazonaws.com/dev/fetch-event',
-        dataType: 'json',
-        success: function (data) {
-          if (data.statusCode === 200) {
-            const items = JSON.parse(data.body);
-            var itemList = ``;
-            $.each(items, function (index, val) {
-              var date = val.date ? val.date.S : 'N/A';
-              var time = val.time ? val.time.S : 'N/A';
-              var description = val.description ? val.description.S : 'N/A';
-              var eventId = val.eventId ? val.eventId.S : 'N/A';
+function loadItems() {
+  $.ajax({
+    type: "GET",
+    url: 'https://9qgdqi0uv6.execute-api.us-east-1.amazonaws.com/dev/events/show',
+    dataType: 'json',
+    success: function (response) {
+      // Extract body from response and parse it
+      const data = JSON.parse(response.body);
+      var itemList = ``;
+      $.each(data, function (index, val) {
+        var date = val.date || 'N/A';
+        var time = val.time || 'N/A';
+        var description = val.description || 'N/A';
+        var eventId = val.eventId || 'N/A';
 
-              itemList += `<tr>
-                              <th scope="row">` + (index + 1) + `</th>
-                              <td>` + date + `</td>
-                              <td>` + time + `</td>
-                              <td>` + description + `</td>
-                              <td>
-                                  <button onclick="deleteItem('` + eventId + `')" type="button" class="btn btn-danger">Delete</button>
-                              </td>
-                            </tr>`;
-            });
-            $('#itemList').html(itemList);
-          } else {
-            console.error("Error: ", data);
-          }
-        },
-        error: function (xhr, status, error) {
-          console.error("Error occurred: ", status, error);
-        }
+        itemList += `<tr>
+                        <th scope="row">` + (index + 1) + `</th>
+                        <td>` + date + `</td>
+                        <td>` + time + `</td>
+                        <td>` + description + `</td>
+                        <td>
+                            <button onclick="deleteItem('` + eventId + `')" type="button" class="btn btn-danger">Delete</button>
+                        </td>
+                      </tr>`;
       });
+      $('#itemList').html(itemList);
+    },
+    error: function (xhr, status, error) {
+      console.error("Error occurred: ", status, error);
     }
+  });
+}
 
     function deleteItem(eventId) {
       const requestBody = JSON.stringify({ body: JSON.stringify({ eventId: eventId }) });
       console.log("request is" + requestBody);
       $.ajax({
-        type: "DELETE",
-        url: 'https://6tcm9tbhu1.execute-api.us-east-1.amazonaws.com/dev/delete-event',
+        type: "POST",
+        url: 'https://9qgdqi0uv6.execute-api.us-east-1.amazonaws.com/dev/events/delete',
         contentType: 'application/json',
         data: requestBody,
         dataType: 'json',
@@ -188,7 +185,7 @@
       const requestBody = JSON.stringify({ eventId: eventId, updatedEvent: updatedEvent });
       $.ajax({
         type : "POST",
-        url : 'https://6tcm9tbhu1.execute-api.us-east-1.amazonaws.com/dev/update-event',
+        url : 'https://9qgdqi0uv6.execute-api.us-east-1.amazonaws.com/dev/events/show',
         contentType: 'application/json',
         data: requestBody,
         dataType: 'json',
